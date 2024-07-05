@@ -122,7 +122,59 @@ classdef TopoNumber
             Omega_spin = -imag(Omega_spin);
         end
 
+        function [Z_xy,Z_yx] = Zeeman_curvature(syst,kx,ky,Sx,Sy,FermiEnergyOrBand,methods)
+            % ZEEMAN_CURVATURE is used to calculate the zeeman berry curvature
+            % mathcal{Z}_{xy}^n = sum_m ir^x_{nm} sigma^y_{mn}+h.c.=sum_m v^x_{nm}
+            % sigma^y_{mn}/epsilon_{nm}+h.c.
+            arguments
+                syst    TB_Hamilton.Builder;
+                kx      (1,:) double;
+                ky      (1,:) double;
+                Sx   double;
+                Sy   double;
+                FermiEnergyOrBand (1,1) double;
+                methods   (1,:) char {mustBeMember(methods,{'SigleBand','MultiBands','Energy'})} = 'Energy';
+            end
 
+            numx = length(kx); numy = length(ky);
+            % sy = kron(eye(2),[0,-1i;1i,0]); sx = kron(eye(2),[0,1;1,0]);
+            dx = kx(2) - kx(1);
+            dy = ky(2) - ky(1);
+            Z_xy = zeros(numx,numy);               Z_yx = zeros(numx,numy);
+            dim = syst.system_graph.numnodes;
+
+            if methods == "MultiBands"
+                inds = 1:FermiEnergyOrBand;
+            elseif methods == "SigleBand"
+                inds = FermiEnergyOrBand;
+            else
+                inds = [];
+            end
+
+            parfor j1 = 1:numx
+                for j2 = 1:numy
+                    H = full(syst.Hamilton(kx(j1),ky(j2)));
+                    [V,E] = eig(H); E = diag(E);
+
+                    H_dx = full(syst.Hamilton(kx(j1)+dx,ky(j2)));
+                    H_dy = full(syst.Hamilton(kx(j1),ky(j2)+dy));
+                    vx = (H_dx-H)/dx;  vy = (H_dy-H)/dy;
+                    Z_xy_ = 0; Z_yx_ = 0;
+                    if isempty(inds)
+                        inds = 1:length(find(E<=FermiEnergyOrBand));
+                    end
+
+                    for ind = inds
+                        for i1 = [1:ind-1,ind+1:dim]
+                            Delta = E(ind)-E(i1);
+                            Z_xy_ = Z_xy_ + 1/2*(V(:,ind)'*vx*V(:,i1) * V(:,i1)'*Sy*V(:,ind) )* (dx*dy)/Delta;
+                            Z_yx_ =Z_yx_ + 1/2*(V(:,ind)'*vy*V(:,i1)*V(:,i1)' * Sx * V(:,ind))* (dx*dy)/Delta;
+                        end
+                    end
+                    Z_xy(j1,j2) = Z_xy_ + Z_xy_'; Z_yx(j1,j2) = Z_yx_ + Z_yx_';
+                end
+            end
+        end
 
 
         function V_ = systFBZ(syst)
