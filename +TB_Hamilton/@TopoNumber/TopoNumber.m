@@ -10,7 +10,7 @@ classdef TopoNumber
             points = mesh.Nodes';       ind = mesh.Elements';
             ind_len = length(ind);      chern = 0;
             Hamilton = syst.Hamilton;
-            
+
             for j1 = 1:ind_len
                 kxs = points(ind(j1,:),1);    kys = points(ind(j1,:),2);
                 Hn1 = full(Hamilton(kxs(1),kys(1)));
@@ -28,9 +28,6 @@ classdef TopoNumber
                     num1 = length(find(diag(E1) < energy));
                     num2 = length(find(diag(E2) < energy));
                     num3 = length(find(diag(E3) < energy));
-                    % if max([num1,num2,num3]) ~= min([num1,num2,num3])
-                    %     warning('The number of energy bands below the Fermi surface varies for the three points.');
-                    % end
                     num = max([num1,num2,num3]);
                     Psi_n = det(un1(:,1:num)'*un2(:,1:num))*det(un2(:,1:num)'*un3(:,1:num))*...
                         det(un3(:,1:num)'*un1(:,1:num));
@@ -58,7 +55,8 @@ classdef TopoNumber
                     kx+linspace(Delta,0,num_loop),kx*ones(1,num_loop);...
                     ky*ones(1,num_loop),ky+linspace(0,Delta,num_loop),...
                     (ky+Delta)*ones(1,num_loop),ky+linspace(Delta,0,num_loop)];
-                for j2 = 1:length(k_loop)-1
+
+                for j2 = 1:size(k_loop,2)-1
                     H1 = full(Ham(k_loop(1,j2),k_loop(2,j2)));
                     H2 = full(Ham(k_loop(1,j2+1),k_loop(2,j2+1)));
                     [V1,~] = eig(H1);   [V2,~] = eig(H2);
@@ -79,48 +77,6 @@ classdef TopoNumber
                 C(j1) = 1i*log(Wilson_loop)/Delta^2;
             end
         end
-        function Omega_spin = spin_curvature(syst,Spin,kx,ky,FermiEnergyOrBand,methods)
-            arguments
-                syst    TB_Hamilton.Builder;
-                Spin    (:,:) double
-                kx      (1,:) double;
-                ky      (1,:) double;
-                FermiEnergyOrBand (1,1) double;
-                methods   (1,:) char {mustBeMember(methods,{'SigleBand','MultiBands','Energy'})} = 'Energy';
-            end
-            dim = syst.system_graph.numnodes;
-            nx = length(kx); ny = length(ky);
-            dy = ky(2)-ky(1);  dx = kx(2) - kx(1);
-
-            assert(length(Spin)==dim,'The dimension of Spin must equal Hamiltonian');
-
-            Omega_spin = zeros(nx,ny);
-            parfor j1 = 1:nx
-                for j2 = 1:ny
-                    H = syst.Hamilton(kx(j1),ky(j2));  [V,E] = eig(full(H)); E = diag(E);
-                    H_dx = syst.Hamilton(kx(j1)+dx,ky(j2)); H_dy = syst.Hamilton(kx(j1),ky(j2)+dy);
-                    vy = (H_dy-H)/dy;  vx = (H_dx-H)/dx;
-                    Omega_ = 0;
-                    if methods == "Energy"
-                        nband = 1:length(find(E<=FermiEnergyOrBand));
-                    elseif methods == "MultiBands"
-                        nband = 1:FermiEnergyOrBand;
-                    else
-                        nband = FermiEnergyOrBand;
-                    end
-                    for i1 = nband
-                        for i2 = [1:i1-1,i1+1:dim]
-                            if i2~=i1
-                                Delta = E(i1)-E(i2);
-                                Omega_ = Omega_ + V(:,i1)'*(vy*Spin+Spin*vy)*V(:,i2)*V(:,i2)'*vx*V(:,i1)/Delta^2*dx*dy;
-                            end
-                        end
-                    end
-                    Omega_spin(j1,j2) = Omega_;
-                end
-            end
-            Omega_spin = -imag(Omega_spin);
-        end
 
         function [Z_xy,Z_yx] = Zeeman_curvature(syst,kx,ky,Sx,Sy,FermiEnergyOrBand,methods)
             % ZEEMAN_CURVATURE is used to calculate the zeeman berry curvature
@@ -137,21 +93,12 @@ classdef TopoNumber
             end
 
             numx = length(kx); numy = length(ky);
-            % sy = kron(eye(2),[0,-1i;1i,0]); sx = kron(eye(2),[0,1;1,0]);
             dx = kx(2) - kx(1);
             dy = ky(2) - ky(1);
             Z_xy = zeros(numx,numy);               Z_yx = zeros(numx,numy);
             dim = syst.system_graph.numnodes;
 
-            if methods == "MultiBands"
-                inds = 1:FermiEnergyOrBand;
-            elseif methods == "SigleBand"
-                inds = FermiEnergyOrBand;
-            else
-                inds = [];
-            end
-
-            parfor j1 = 1:numx
+            for j1 = 1:numx
                 for j2 = 1:numy
                     H = full(syst.Hamilton(kx(j1),ky(j2)));
                     [V,E] = eig(H); E = diag(E);
@@ -160,15 +107,19 @@ classdef TopoNumber
                     H_dy = full(syst.Hamilton(kx(j1),ky(j2)+dy));
                     vx = (H_dx-H)/dx;  vy = (H_dy-H)/dy;
                     Z_xy_ = 0; Z_yx_ = 0;
-                    if isempty(inds)
+
+                    if methods == "MultiBands"
+                        inds = 1:FermiEnergyOrBand;
+                    elseif methods == "SigleBand"
+                        inds = FermiEnergyOrBand;
+                    else
                         inds = 1:length(find(E<=FermiEnergyOrBand));
                     end
-
                     for ind = inds
                         for i1 = [1:ind-1,ind+1:dim]
                             Delta = E(ind)-E(i1);
-                            Z_xy_ = Z_xy_ + 1/2*(V(:,ind)'*vx*V(:,i1) * V(:,i1)'*Sy*V(:,ind) )* (dx*dy)/Delta;
-                            Z_yx_ =Z_yx_ + 1/2*(V(:,ind)'*vy*V(:,i1)*V(:,i1)' * Sx * V(:,ind))* (dx*dy)/Delta;
+                            Z_xy_ = Z_xy_ + (V(:,ind)'*vx*V(:,i1) * V(:,i1)'*Sy*V(:,ind) )* (dx*dy)/Delta;
+                            Z_yx_ =Z_yx_ + (V(:,ind)'*vy*V(:,i1)*V(:,i1)' * Sx * V(:,ind))* (dx*dy)/Delta;
                         end
                     end
                     Z_xy(j1,j2) = Z_xy_ + Z_xy_'; Z_yx(j1,j2) = Z_yx_ + Z_yx_';
@@ -176,6 +127,45 @@ classdef TopoNumber
             end
         end
 
+        function Omega_spin = spin_curvature(syst,Spin,kx,ky,FermiEnergyOrBand,methods)
+            arguments
+                syst    TB_Hamilton.Builder;
+                Spin    (:,:) double
+                kx      (1,:) double;
+                ky      (1,:) double;
+                FermiEnergyOrBand (1,1) double;
+                methods   (1,:) char {mustBeMember(methods,{'SigleBand','MultiBands','Energy'})} = 'Energy';
+            end
+            dim = syst.system_graph.numnodes;
+            nx = length(kx); ny = length(ky);
+            dy = ky(2)-ky(1);  dx = kx(2) - kx(1);
+
+            assert(length(Spin)==dim,'The dimension of Spin must equal Hamiltonian');
+            Omega_spin = zeros(nx,ny);
+            parfor j1 = 1:nx
+                for j2 = 1:ny
+                    H = syst.Hamilton(kx(j1),ky(j2));  [V,E] = eig(full(H)); E = diag(E);
+                    H_dx = syst.Hamilton(kx(j1)+dx,ky(j2)); H_dy = syst.Hamilton(kx(j1),ky(j2)+dy);
+                    vy = (H_dy-H)/dy;  vx = (H_dx-H)/dx;
+                    Omega_ = 0;
+                    if methods == "Energy"
+                        nband = 1:length(find(E<=FermiEnergyOrBand));
+                    elseif methods == "MultiBands"
+                        nband = 1:FermiEnergyOrBand;
+                    else
+                        nband = FermiEnergyOrBand;
+                    end
+                    for i1 = nband
+                        for i2 = [1:i1-1,i1+1:dim]
+                            Delta = E(i1)-E(i2);
+                            Omega_ = Omega_ + V(:,i1)'*(vy*Spin+Spin*vy)*V(:,i2)*V(:,i2)'*vx*V(:,i1)/Delta^2*dx*dy;
+                        end
+                    end
+                    Omega_spin(j1,j2) = Omega_;
+                end
+            end
+            Omega_spin = -imag(Omega_spin);
+        end
 
         function V_ = systFBZ(syst)
             % the point contain the (0,0);
@@ -200,6 +190,7 @@ classdef TopoNumber
                 end
             end
         end
+
         function mesh = FBZTri(syst,size_grid)
             arguments
                 syst        TB_Hamilton.Builder;
@@ -215,4 +206,9 @@ classdef TopoNumber
             mesh=generateMesh(model,"Hmax",size_grid,"GeometricOrder","linear");
         end
     end
+
+
+
+
+
 end
