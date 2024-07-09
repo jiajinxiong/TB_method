@@ -78,7 +78,7 @@ classdef TopoNumber
             end
         end
 
-        function [Z_xy,Z_yx] = Zeeman_curvature(syst,kx,ky,Sx,Sy,FermiEnergyOrBand,methods)
+        function [Z_xy,Z_yx,Es] = Zeeman_curvature(syst,kx,ky,Sx,Sy,Bands)
             % ZEEMAN_CURVATURE is used to calculate the zeeman berry curvature
             % mathcal{Z}_{xy}^n = sum_m ir^x_{nm} sigma^y_{mn}+h.c.=sum_m v^x_{nm}
             % sigma^y_{mn}/epsilon_{nm}+h.c.
@@ -88,83 +88,80 @@ classdef TopoNumber
                 ky      (1,:) double;
                 Sx   double;
                 Sy   double;
-                FermiEnergyOrBand (1,1) double;
-                methods   (1,:) char {mustBeMember(methods,{'SigleBand','MultiBands','Energy'})} = 'Energy';
+                Bands (1,:) double;
             end
 
-            numx = length(kx); numy = length(ky);
+            nx = length(kx); ny = length(ky);
             dx = kx(2) - kx(1);
             dy = ky(2) - ky(1);
-            Z_xy = zeros(numx,numy);               Z_yx = zeros(numx,numy);
+            
             dim = syst.system_graph.numnodes;
-
-            for j1 = 1:numx
-                for j2 = 1:numy
+            nB = length(Bands);
+            Z_xy = zeros(nx,ny,nB);               Z_yx = zeros(nx,ny,nB);
+            EE = zeros(nx,ny,nB);
+            parfor j1 = 1:nx
+                for j2 = 1:ny
                     H = full(syst.Hamilton(kx(j1),ky(j2)));
                     [V,E] = eig(H); E = diag(E);
 
                     H_dx = full(syst.Hamilton(kx(j1)+dx,ky(j2)));
                     H_dy = full(syst.Hamilton(kx(j1),ky(j2)+dy));
                     vx = (H_dx-H)/dx;  vy = (H_dy-H)/dy;
-                    Z_xy_ = 0; Z_yx_ = 0;
-
-                    if methods == "MultiBands"
-                        inds = 1:FermiEnergyOrBand;
-                    elseif methods == "SigleBand"
-                        inds = FermiEnergyOrBand;
-                    else
-                        inds = 1:length(find(E<=FermiEnergyOrBand));
-                    end
-                    for ind = inds
+                    
+                    for ind = 1:nB
+                        nband = Bands(ind);
+                        Z_xy_ = 0; Z_yx_ = 0;
                         for i1 = [1:ind-1,ind+1:dim]
-                            Delta = E(ind)-E(i1);
-                            Z_xy_ = Z_xy_ + (V(:,ind)'*vx*V(:,i1) * V(:,i1)'*Sy*V(:,ind) )* (dx*dy)/Delta;
-                            Z_yx_ =Z_yx_ + (V(:,ind)'*vy*V(:,i1)*V(:,i1)' * Sx * V(:,ind))* (dx*dy)/Delta;
+                            Delta = E(nband)-E(i1);
+                            Z_xy_ = Z_xy_ + (V(:,nband)'*vx*V(:,i1) * V(:,i1)'*Sy*V(:,nband) )* (dx*dy)/Delta;
+                            Z_yx_ =Z_yx_ + (V(:,nband)'*vy*V(:,i1)*V(:,i1)' * Sx * V(:,nband))* (dx*dy)/Delta;
                         end
+                        Z_xy(j1,j2,ind) = Z_xy_ + Z_xy_'; Z_yx(j1,j2,ind) = Z_yx_ + Z_yx_';
+                        EE(j1,j2,ind) = E(nband);
                     end
-                    Z_xy(j1,j2) = Z_xy_ + Z_xy_'; Z_yx(j1,j2) = Z_yx_ + Z_yx_';
                 end
+            end
+            if nargout == 3
+                Es = EE;
             end
         end
 
-        function Omega_spin = spin_curvature(syst,Spin,kx,ky,FermiEnergyOrBand,methods)
+        function [Omega_spin,Es] = spin_curvature(syst,Spin,kx,ky,Bands)
             arguments
                 syst    TB_Hamilton.Builder;
                 Spin    (:,:) double
                 kx      (1,:) double;
                 ky      (1,:) double;
-                FermiEnergyOrBand (1,1) double;
-                methods   (1,:) char {mustBeMember(methods,{'SigleBand','MultiBands','Energy'})} = 'Energy';
+                Bands (1,:) double;
             end
             dim = syst.system_graph.numnodes;
             nx = length(kx); ny = length(ky);
             dy = ky(2)-ky(1);  dx = kx(2) - kx(1);
-
             assert(length(Spin)==dim,'The dimension of Spin must equal Hamiltonian');
-            Omega_spin = zeros(nx,ny);
+            nB = length(Bands);
+            Omega_spin = zeros(nx,ny,nB);
+            EE = zeros(nx,ny,nB);
             parfor j1 = 1:nx
                 for j2 = 1:ny
                     H = syst.Hamilton(kx(j1),ky(j2));  [V,E] = eig(full(H)); E = diag(E);
                     H_dx = syst.Hamilton(kx(j1)+dx,ky(j2)); H_dy = syst.Hamilton(kx(j1),ky(j2)+dy);
                     vy = (H_dy-H)/dy;  vx = (H_dx-H)/dx;
-                    Omega_ = 0;
-                    if methods == "Energy"
-                        nband = 1:length(find(E<=FermiEnergyOrBand));
-                    elseif methods == "MultiBands"
-                        nband = 1:FermiEnergyOrBand;
-                    else
-                        nband = FermiEnergyOrBand;
-                    end
-                    for i1 = nband
-                        for i2 = [1:i1-1,i1+1:dim]
-                            Delta = E(i1)-E(i2);
-                            Omega_ = Omega_ + V(:,i1)'*(vy*Spin+Spin*vy)*V(:,i2)*V(:,i2)'*vx*V(:,i1)/Delta^2*dx*dy;
+                    for i1 = 1:nB
+                        Omega_ = 0;
+                        nband = Bands(i1);
+                        for i2 = [1:nband-1,nband+1:dim]
+                            Delta = E(nband)-E(i2);
+                            Omega_ = Omega_ + V(:,nband)'*(vy*Spin+Spin*vy)*V(:,i2)*V(:,i2)'*vx*V(:,nband)/Delta^2*dx*dy;
                         end
+                        Omega_spin(j1,j2,i1) = Omega_;
+                        EE(j1,j2,i1) = E(nband);
                     end
-                    Omega_spin(j1,j2) = Omega_;
                 end
             end
             Omega_spin = -imag(Omega_spin);
+            if nargout == 2
+                Es = EE;
+            end
         end
 
         function V_ = systFBZ(syst)
@@ -206,9 +203,6 @@ classdef TopoNumber
             mesh=generateMesh(model,"Hmax",size_grid,"GeometricOrder","linear");
         end
     end
-
-
-
 
 
 end
