@@ -1,6 +1,8 @@
-function FBZ(syst)
+function FBZ(syst,isscatter,isvec)
 arguments
     syst        TB_Hamilton.Builder;
+    isscatter (1,1) double {mustBeMember(isscatter,[0,1])} = 1;
+    isvec (1,1) double {mustBeMember(isvec,[0,1])} = 0;
 end
 
 % PLOT_FBZ is used to plot FBZ
@@ -17,8 +19,8 @@ volume = abs(dot(a1,cross(a2,a3)));
 b1 = 2*pi*cross(a2,a3)/volume;   b2 = 2*pi*cross(a3,a1)/volume;
 b1 = b1(1:2);   b2 = b2(1:2);
 R_Point = [];
-for j1 = -3:3
-    for j2 = -3:3
+for j1 = -5:5
+    for j2 = -5:5
         R_Point = [R_Point;j1*b1+j2*b2];
     end
 end
@@ -27,17 +29,21 @@ Vx(abs(Vx)>max(R_Point(:))) = NaN;
 Vy(abs(Vy)>max(R_Point(:))) = NaN;
 
 plot(Vx,Vy,'--','color','k','LineWidth',.5);
+if isvec
 hold on
-% quiver(0,0,b1(1),b1(2),'LineWidth',2,'AutoScale','off');
-% quiver(0,0,b2(1),b2(2),'LineWidth',2,'AutoScale','off');
-% scatter(R_Point(:,1),R_Point(:,2),'filled','SizeData',50);
-% text(2*b1(1)/3,2*b1(2)/3,...
-%     '$b_1$','FontSize',20,'Interpreter','latex');
-% text(2*b2(1)/3,2*b2(2)/3,...
-    % '$b_2$','FontSize',20,'Interpreter','latex');
+quiver(0,0,b1(1),b1(2),'LineWidth',2,'AutoScale','off');
+quiver(0,0,b2(1),b2(2),'LineWidth',2,'AutoScale','off');
+text(2*b1(1)/3,2*b1(2)/3,...
+    '$b_1$','FontSize',20,'Interpreter','latex');
+text(2*b2(1)/3,2*b2(2)/3,...
+    '$b_2$','FontSize',20,'Interpreter','latex');
+elseif isscatter
+    scatter(R_Point(:,1),R_Point(:,2),'filled','^','MarkerFaceColor','k','SizeData',10);
+end
 xlim([-max(abs([b1(1),b2(1)])),max(abs([b1(1),b2(1)]))]);
 ylim([-max(abs([b1(2),b2(2)])),max(abs([b1(2),b2(2)]))]);
 xticks([]);yticks([]);
+
 % xlabel('$k_x$','Interpreter','latex','FontSize',15);
 % label = ylabel('$k_y$','Interpreter','latex','FontSize',15,'Rotation',0);
 % set(label, 'Units', 'Normalized', 'Position', [-0.05, 0.5, 0]);

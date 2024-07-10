@@ -78,7 +78,7 @@ classdef TopoNumber
             end
         end
 
-        function [Z_xy,Z_yx,Es] = Zeeman_curvature(syst,kx,ky,Sx,Sy,Bands)
+        function [Z_xy,Z_yx,Es] = Zeeman_curvature(syst,kx,ky,Sx,Sy,BandorEnergy,methods)
             % ZEEMAN_CURVATURE is used to calculate the zeeman berry curvature
             % mathcal{Z}_{xy}^n = sum_m ir^x_{nm} sigma^y_{mn}+h.c.=sum_m v^x_{nm}
             % sigma^y_{mn}/epsilon_{nm}+h.c.
@@ -88,36 +88,59 @@ classdef TopoNumber
                 ky      (1,:) double;
                 Sx   double;
                 Sy   double;
-                Bands (1,:) double;
+                BandorEnergy (1,:) double;
+                methods (1,:) char {mustBeMember(methods,{'Band','Energy'})} = 'Band';
             end
-
             nx = length(kx); ny = length(ky);
             dx = kx(2) - kx(1);
             dy = ky(2) - ky(1);
-            
             dim = syst.system_graph.numnodes;
-            nB = length(Bands);
-            Z_xy = zeros(nx,ny,nB);               Z_yx = zeros(nx,ny,nB);
-            EE = zeros(nx,ny,nB);
-            parfor j1 = 1:nx
-                for j2 = 1:ny
-                    H = full(syst.Hamilton(kx(j1),ky(j2)));
-                    [V,E] = eig(H); E = diag(E);
+            if methods == "Band"
+                nB = length(BandorEnergy);
+                Z_xy = zeros(nx,ny,nB);               Z_yx = zeros(nx,ny,nB);
+                EE = zeros(nx,ny,nB);
+                parfor j1 = 1:nx
+                    for j2 = 1:ny
+                        H = full(syst.Hamilton(kx(j1),ky(j2)));
+                        [V,E] = eig(H); E = diag(E);
 
-                    H_dx = full(syst.Hamilton(kx(j1)+dx,ky(j2)));
-                    H_dy = full(syst.Hamilton(kx(j1),ky(j2)+dy));
-                    vx = (H_dx-H)/dx;  vy = (H_dy-H)/dy;
-                    
-                    for ind = 1:nB
-                        nband = Bands(ind);
-                        Z_xy_ = 0; Z_yx_ = 0;
-                        for i1 = [1:ind-1,ind+1:dim]
-                            Delta = E(nband)-E(i1);
-                            Z_xy_ = Z_xy_ + (V(:,nband)'*vx*V(:,i1) * V(:,i1)'*Sy*V(:,nband) )* (dx*dy)/Delta;
-                            Z_yx_ =Z_yx_ + (V(:,nband)'*vy*V(:,i1)*V(:,i1)' * Sx * V(:,nband))* (dx*dy)/Delta;
+                        H_dx = full(syst.Hamilton(kx(j1)+dx,ky(j2)));
+                        H_dy = full(syst.Hamilton(kx(j1),ky(j2)+dy));
+                        vx = (H_dx-H)/dx;  vy = (H_dy-H)/dy;
+                        for ind = 1:nB
+                            nband = BandorEnergy(ind);
+                            Z_xy_ = 0; Z_yx_ = 0;
+                            for i1 = [1:ind-1,ind+1:dim]
+                                Delta = E(nband)-E(i1);
+                                Z_xy_ = Z_xy_ + (V(:,nband)'*vx*V(:,i1) * V(:,i1)'*Sy*V(:,nband) )* (dx*dy)/Delta;
+                                Z_yx_ =Z_yx_ + (V(:,nband)'*vy*V(:,i1)*V(:,i1)' * Sx * V(:,nband))* (dx*dy)/Delta;
+                            end
+                            Z_xy(j1,j2,ind) = Z_xy_ + Z_xy_'; Z_yx(j1,j2,ind) = Z_yx_ + Z_yx_';
+                            EE(j1,j2,ind) = E(nband);
                         end
-                        Z_xy(j1,j2,ind) = Z_xy_ + Z_xy_'; Z_yx(j1,j2,ind) = Z_yx_ + Z_yx_';
-                        EE(j1,j2,ind) = E(nband);
+                    end
+                end
+            else
+                Z_xy = zeros(nx,ny);               Z_yx = zeros(nx,ny);
+                parfor j1 = 1:nx
+                    for j2 = 1:ny
+                        H = full(syst.Hamilton(kx(j1),ky(j2)));
+                        [V,E] = eig(H); E = diag(E);
+                        H_dx = full(syst.Hamilton(kx(j1)+dx,ky(j2)));
+                        H_dy = full(syst.Hamilton(kx(j1),ky(j2)+dy));
+                        vx = (H_dx-H)/dx;  vy = (H_dy-H)/dy;
+                        nE = length(find(E<=BandorEnergy));
+                        Z_xy_ = 0; Z_yx_ = 0;
+                        for ind = 1:nE
+                            nband = ind;
+                            
+                            for i1 = [1:ind-1,ind+1:dim]
+                                Delta = E(nband)-E(i1);
+                                Z_xy_ = Z_xy_ + (V(:,nband)'*vx*V(:,i1) * V(:,i1)'*Sy*V(:,nband) )* (dx*dy)/Delta;
+                                Z_yx_ =Z_yx_ + (V(:,nband)'*vy*V(:,i1)*V(:,i1)' * Sx * V(:,nband))* (dx*dy)/Delta;
+                            end
+                            Z_xy(j1,j2) = Z_xy_ + Z_xy_'; Z_yx(j1,j2) = Z_yx_ + Z_yx_';
+                        end
                     end
                 end
             end
@@ -126,35 +149,58 @@ classdef TopoNumber
             end
         end
 
-        function [Omega_spin,Es] = spin_curvature(syst,Spin,kx,ky,Bands)
+        function [Omega_spin,Es] = spin_curvature(syst,Spin,kx,ky,BandorEnergy,methods)
             arguments
                 syst    TB_Hamilton.Builder;
                 Spin    (:,:) double
                 kx      (1,:) double;
                 ky      (1,:) double;
-                Bands (1,:) double;
+                BandorEnergy (1,:) double;
+                methods (1,:) char {mustBeMember(methods,{'Band','Energy'})} = 'Band';
             end
             dim = syst.system_graph.numnodes;
             nx = length(kx); ny = length(ky);
             dy = ky(2)-ky(1);  dx = kx(2) - kx(1);
             assert(length(Spin)==dim,'The dimension of Spin must equal Hamiltonian');
-            nB = length(Bands);
-            Omega_spin = zeros(nx,ny,nB);
-            EE = zeros(nx,ny,nB);
-            parfor j1 = 1:nx
-                for j2 = 1:ny
-                    H = syst.Hamilton(kx(j1),ky(j2));  [V,E] = eig(full(H)); E = diag(E);
-                    H_dx = syst.Hamilton(kx(j1)+dx,ky(j2)); H_dy = syst.Hamilton(kx(j1),ky(j2)+dy);
-                    vy = (H_dy-H)/dy;  vx = (H_dx-H)/dx;
-                    for i1 = 1:nB
-                        Omega_ = 0;
-                        nband = Bands(i1);
-                        for i2 = [1:nband-1,nband+1:dim]
-                            Delta = E(nband)-E(i2);
-                            Omega_ = Omega_ + V(:,nband)'*(vy*Spin+Spin*vy)*V(:,i2)*V(:,i2)'*vx*V(:,nband)/Delta^2*dx*dy;
+            
+            if methods == "Band"
+                nB = length(BandorEnergy);
+                Omega_spin = zeros(nx,ny,nB);
+                EE = zeros(nx,ny,nB);
+                parfor j1 = 1:nx
+                    for j2 = 1:ny
+                        H = syst.Hamilton(kx(j1),ky(j2));  [V,E] = eig(full(H)); E = diag(E);
+                        H_dx = syst.Hamilton(kx(j1)+dx,ky(j2)); H_dy = syst.Hamilton(kx(j1),ky(j2)+dy);
+                        vy = (H_dy-H)/dy;  vx = (H_dx-H)/dx;
+                        for i1 = 1:nB
+                            Omega_ = 0;
+                            nband = BandorEnergy(i1);
+                            for i2 = [1:nband-1,nband+1:dim]
+                                Delta = E(nband)-E(i2);
+                                Omega_ = Omega_ + V(:,nband)'*(vy*Spin+Spin*vy)*V(:,i2)*V(:,i2)'*vx*V(:,nband)/Delta^2*dx*dy;
+                            end
+                            Omega_spin(j1,j2,i1) = Omega_;
+                            EE(j1,j2,i1) = E(nband);
                         end
-                        Omega_spin(j1,j2,i1) = Omega_;
-                        EE(j1,j2,i1) = E(nband);
+                    end
+                end
+            else
+                Omega_spin = zeros(nx,ny);
+                parfor j1 = 1:nx
+                    for j2 = 1:ny
+                        H = syst.Hamilton(kx(j1),ky(j2));  [V,E] = eig(full(H)); E = diag(E);
+                        H_dx = syst.Hamilton(kx(j1)+dx,ky(j2)); H_dy = syst.Hamilton(kx(j1),ky(j2)+dy);
+                        vy = (H_dy-H)/dy;  vx = (H_dx-H)/dx;
+                        nE = length(find(E<=BandorEnergy));
+                        Omega_ = 0;
+                        for i1 = 1:nE
+                            nband = i1;
+                            for i2 = [1:nband-1,nband+1:dim]
+                                Delta = E(nband)-E(i2);
+                                Omega_ = Omega_ + V(:,nband)'*(vy*Spin+Spin*vy)*V(:,i2)*V(:,i2)'*vx*V(:,nband)/Delta^2*dx*dy;
+                            end
+                            Omega_spin(j1,j2) = Omega_;
+                        end
                     end
                 end
             end
