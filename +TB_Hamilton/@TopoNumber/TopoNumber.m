@@ -78,16 +78,15 @@ classdef TopoNumber
             end
         end
 
-        function [Z_xy,Z_yx,Es] = Zeeman_curvature(syst,kx,ky,Sx,Sy,BandorEnergy,methods)
+        function [Z_xspin2,Z_yspin1,Es] = Zeeman_curvature(syst,kx,ky,spin1,spin2,BandorEnergy,methods)
             % ZEEMAN_CURVATURE is used to calculate the zeeman berry curvature
-            % mathcal{Z}_{xy}^n = sum_m ir^x_{nm} sigma^y_{mn}+h.c.=sum_m v^x_{nm}
-            % sigma^y_{mn}/epsilon_{nm}+h.c.
+            % mathcal{Z}_{x spin2}^n = ir^x_{nm} spin2_{mn}+h.c.
             arguments
                 syst    TB_Hamilton.Builder;
                 kx      (1,:) double;
                 ky      (1,:) double;
-                Sx   double;
-                Sy   double;
+                spin1   double;
+                spin2   double;
                 BandorEnergy (1,:) double;
                 methods (1,:) char {mustBeMember(methods,{'Band','Energy'})} = 'Band';
             end
@@ -97,7 +96,7 @@ classdef TopoNumber
             dim = syst.system_graph.numnodes;
             if methods == "Band"
                 nB = length(BandorEnergy);
-                Z_xy = zeros(nx,ny,nB);               Z_yx = zeros(nx,ny,nB);
+                Z_xspin2 = zeros(nx,ny,nB);               Z_yspin1 = zeros(nx,ny,nB);
                 EE = zeros(nx,ny,nB);
                 parfor j1 = 1:nx
                     for j2 = 1:ny
@@ -112,16 +111,16 @@ classdef TopoNumber
                             Z_xy_ = 0; Z_yx_ = 0;
                             for i1 = [1:ind-1,ind+1:dim]
                                 Delta = E(nband)-E(i1);
-                                Z_xy_ = Z_xy_ + (V(:,nband)'*vx*V(:,i1) * V(:,i1)'*Sy*V(:,nband) )* (dx*dy)/Delta;
-                                Z_yx_ =Z_yx_ + (V(:,nband)'*vy*V(:,i1)*V(:,i1)' * Sx * V(:,nband))* (dx*dy)/Delta;
+                                Z_xy_ = Z_xy_ + (V(:,nband)'*vx*V(:,i1) * V(:,i1)'*spin2*V(:,nband) )* (dx*dy)/Delta;
+                                Z_yx_ =Z_yx_ + (V(:,nband)'*vy*V(:,i1)*V(:,i1)' * spin1 * V(:,nband))* (dx*dy)/Delta;
                             end
-                            Z_xy(j1,j2,ind) = Z_xy_ + Z_xy_'; Z_yx(j1,j2,ind) = Z_yx_ + Z_yx_';
+                            Z_xspin2(j1,j2,ind) = Z_xy_ + Z_xy_'; Z_yspin1(j1,j2,ind) = Z_yx_ + Z_yx_';
                             EE(j1,j2,ind) = E(nband);
                         end
                     end
                 end
             else
-                Z_xy = zeros(nx,ny);               Z_yx = zeros(nx,ny);
+                Z_xspin2 = zeros(nx,ny);               Z_yspin1 = zeros(nx,ny);
                 parfor j1 = 1:nx
                     for j2 = 1:ny
                         H = full(syst.Hamilton(kx(j1),ky(j2)));
@@ -136,10 +135,10 @@ classdef TopoNumber
                             
                             for i1 = [1:ind-1,ind+1:dim]
                                 Delta = E(nband)-E(i1);
-                                Z_xy_ = Z_xy_ + (V(:,nband)'*vx*V(:,i1) * V(:,i1)'*Sy*V(:,nband) )* (dx*dy)/Delta;
-                                Z_yx_ =Z_yx_ + (V(:,nband)'*vy*V(:,i1)*V(:,i1)' * Sx * V(:,nband))* (dx*dy)/Delta;
+                                Z_xy_ = Z_xy_ + (V(:,nband)'*vx*V(:,i1) * V(:,i1)'*spin2*V(:,nband) )* (dx*dy)/Delta;
+                                Z_yx_ =Z_yx_ + (V(:,nband)'*vy*V(:,i1)*V(:,i1)' * spin1 * V(:,nband))* (dx*dy)/Delta;
                             end
-                            Z_xy(j1,j2) = Z_xy_ + Z_xy_'; Z_yx(j1,j2) = Z_yx_ + Z_yx_';
+                            Z_xspin2(j1,j2) = Z_xy_ + Z_xy_'; Z_yspin1(j1,j2) = Z_yx_ + Z_yx_';
                         end
                     end
                 end

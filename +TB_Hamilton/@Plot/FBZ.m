@@ -29,8 +29,8 @@ Vx(abs(Vx)>max(R_Point(:))) = NaN;
 Vy(abs(Vy)>max(R_Point(:))) = NaN;
 
 plot(Vx,Vy,'--','color','k','LineWidth',.5);
-if isvec
 hold on
+if isvec
 quiver(0,0,b1(1),b1(2),'LineWidth',2,'AutoScale','off');
 quiver(0,0,b2(1),b2(2),'LineWidth',2,'AutoScale','off');
 text(2*b1(1)/3,2*b1(2)/3,...
@@ -48,4 +48,5 @@ xticks([]);yticks([]);
 % label = ylabel('$k_y$','Interpreter','latex','FontSize',15,'Rotation',0);
 % set(label, 'Units', 'Normalized', 'Position', [-0.05, 0.5, 0]);
 axis equal;
+hold off
 end
