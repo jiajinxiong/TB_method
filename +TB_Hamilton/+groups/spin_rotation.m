@@ -16,11 +16,13 @@ function U = spin_rotation(n,s)
 %   spin matrix. its size is (2s+1,2s+1).
 arguments
     n    (1,:)  double;
-    s    (1,1) double;
+    s    double;
 end
 
-[sx,sy,sz] = TB_Hamilton.groups.spin_matrices(s,1:3);
-s = cat(3,sx,sy,sz);
+if length(s) == 1
+    s = TB_Hamilton.groups.spin_matrices(s);
+end
+
 U = expm(-1i*tensorprod(s,n,3,2));
 
 end

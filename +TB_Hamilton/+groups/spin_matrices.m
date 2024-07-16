@@ -1,33 +1,26 @@
-function varargout  = spin_matrices(spin,direction)
+function S  = spin_matrices(spin)
 % SPIN_MATRICES is used to construct the spin matrix
-% Sx = spin_matrices(spin,1); Sy = spin_matrices(spin,2);
-% Sz = spin_matrices(spin,3); S0 = spin_matrices(spin,0);
+% 
+% Parameters
+% ------
+% spin : spin must be half-integer
+% 
+% Return
+% ------
+% S : (2s+1,2s+1,3) matrix
+%   sx = S(:,:,1); sy = S(:,:,2); sz = S(:,:,3);
+%
 % Ref: https://en.wikipedia.org/wiki/Spin_(physics)
 arguments
     spin            (1,1)    double;
-    direction     (1,:)    {mustBeInRange(direction,0,3)};
 end
 d = 2 * spin + 1;
 assert(d-fix(d)==0,'The spin must be half-integer');
-nargoutchk(length(direction),length(direction));
-
+S = zeros(d,d,3);
 e = sqrt( 2*(spin+1)*(1:d-1)-(1:d-1).*(2:d) )/2;
-for j1 = 1:length(direction)
-    varargout{j1} = spin_component(e,d,direction(j1));
-end
 
-end
-
-
-function S = spin_component(e,d,num)
-if num == 0
-    S = eye(d);
-elseif num == 3
-    S = diag(d-1:-2:-d+1)/2;
-elseif num == 2
-    S = full(1i*spdiags([-[0,e]' [e,0]'],[1,-1],d,d));
-else
-    S =  full(spdiags([[0,e]' [e,0]'],[1,-1],d,d));
-end
+S(:,:,1) = full(spdiags([[0,e]' [e,0]'],[1,-1],d,d));
+S(:,:,2) = full(1i*spdiags([-[0,e]' [e,0]'],[1,-1],d,d));
+S(:,:,3) = diag(d-1:-2:-d+1)/2;
 
 end

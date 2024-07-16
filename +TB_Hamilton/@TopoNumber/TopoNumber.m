@@ -80,7 +80,26 @@ classdef TopoNumber
 
         function [Z_xspin2,Z_yspin1,Es] = Zeeman_curvature(syst,kx,ky,spin1,spin2,BandorEnergy,methods)
             % ZEEMAN_CURVATURE is used to calculate the zeeman berry curvature
-            % mathcal{Z}_{x spin2}^n = ir^x_{nm} spin2_{mn}+h.c.
+            % Z_{x spin2}^n = 2Re sum_m (ir^x_{nm} spin2_{mn}).
+            % 
+            % Parameters
+            % ------
+            % syst : TB_Hamilton.Builder.
+            % kx : wave vector in x direction.
+            % ky : wave vector in y direction.
+            % spin1 : spin operator.
+            % spin2 : spin operator.
+            % BandorEnergy : band index or fermi energy.
+            % methods : 'Band' or 'Energy' (default 'Band')
+            % 
+            % Return
+            % ------
+            % Z_xspin2 : Zeeman Berry  curvature
+            %   defined as Z_{x spin2} = 2Re sum (ir^x_{nm} spin2_{mn})
+            %   where `spin2` is the input parameter.
+            % Z_yspin1 : Zeeman Berry curvature
+            %   defined as Z_{y spin1} = 2Re sum (ir^y_{nm} spin1_{mn})
+            %   where `spin1` is the input paramater
             arguments
                 syst    TB_Hamilton.Builder;
                 kx      (1,:) double;
@@ -149,6 +168,26 @@ classdef TopoNumber
         end
 
         function [Omega_spin,Es] = spin_curvature(syst,Spin,kx,ky,BandorEnergy,methods)
+            % SPIN_CURVATURE is used to calculate the spin berry curvature
+            % that defined as Omega^s_n =
+            % -imag(<n|Spin*vy|m><m|vx|n>/e_{mn}^2), where `Spin` is the
+            % second parameter.
+            % 
+            % Parameters
+            % ------
+            % syst : TB_Hamilton.Builder
+            % Spin : spin operator
+            % kx : wave vector x direction
+            % ky : wave vector y direction
+            % BandorEnergy : band index or fermi energy
+            % methods : 'Band' or 'Energy' (default 'Band')
+            %
+            % Return
+            % ------
+            % Omega_spin : spin berry curvature
+            %   -imag( <n|s*vy|m><m|vx|n> ) where 's' is the Spin.
+            % Es : bulk band energy (optional)
+            %   when return value number equal 2
             arguments
                 syst    TB_Hamilton.Builder;
                 Spin    (:,:) double
@@ -210,7 +249,7 @@ classdef TopoNumber
         end
 
         function V_ = systFBZ(syst)
-            % the point contain the (0,0);
+            % SYSTFBZ 
             arguments
                 syst    TB_Hamilton.Builder;
             end
