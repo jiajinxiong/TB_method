@@ -1,4 +1,4 @@
-function g = rotation(angle,axis,inversion,options)
+function g = rotation(angle,axis,options)
 % ROTATION return a rotation operator.
 %
 % Parameters
@@ -25,11 +25,11 @@ function g = rotation(angle,axis,inversion,options)
 arguments
     angle               (1,1) ;
     axis                (1,:) double = [];
-    inversion           (1,1) logical = false;
+    options.inversion           (1,1) logical = false;
     options.U           (:,:) double =[];
     options.spin        double = [];
 end
-spin = options.spin; U = options.U;
+spin = options.spin; U = options.U; inversion = options.inversion;
 assert(isempty(U)|isempty(spin),'Only one of `U` and `spin` may be provided');
 
 if isempty(axis)
@@ -37,6 +37,10 @@ if isempty(axis)
     if ~isempty(spin)
         U = TB_Hamilton.groups.spin_rotation(angle * [0,0,1],spin);
     end
+    if inversion
+        R = -R;
+    end
+
 elseif length(axis) == 3
     n = angle * axis/norm(axis);
     R = TB_Hamilton.groups.spin_rotation(n,TB_Hamilton.groups.L_matrices(3));

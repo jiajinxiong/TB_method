@@ -19,6 +19,7 @@ classdef SurfaceGF < handle
             H0_tag = setdiff(nodes_tag,nodes_tag_Trans);
             V1_tag = TB_Hamilton.Tag.get_tag_TranslationSymmetry(H0_tag,Translation);
             obj.H0_ind = findnode(syst.system_graph,H0_tag);
+            
             obj.V1_ind = findnode(syst.system_graph,V1_tag);
             obj.get_ham(syst);
         end

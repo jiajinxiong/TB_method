@@ -41,7 +41,7 @@ classdef PointGroupElement
                 g_U = U1 * U2;
             end
             g_R = R1 * R2;
-            g = TB_Hamilton.groups.PointGroupElement(g_R,conjugate = c1^c2,antisymmetry = a1^a2,U=g_U);
+            g = TB_Hamilton.groups.PointGroupElement(g_R,conjugate = bitxor(c1,c2),antisymmetry = bitxor(a1,a2),U=g_U);
         end
         function g = mpower(obj,num)
             % MPOWER redefine the power
@@ -60,13 +60,69 @@ classdef PointGroupElement
             end
         end
 
+        function eq_g = eq(obj,g)
+            arguments
+                obj TB_Hamilton.groups.PointGroupElement;
+                g   TB_Hamilton.groups.PointGroupElement;
+            end
+            eq_g = arrayfun(@(x) eq_(x,g),obj);
+            function eq_AB = eq_(A,B)
+                R_eq = norm(A.R-B.R)<1e-3;
+                basic_eq = R_eq && (A.antisymmetry==B.antisymmetry) && (A.conjugate==B.conjugate);
+                U_eq = norm(A.U-B.U)<1e-3;
+                eq_AB = U_eq && basic_eq;
+            end
+        end
+        function result = lt(obj,g)
+            result = arrayfun(@(x) lt_(x,g),obj);
+            function result_ = lt_(A,B)
+                if ~isequal([A.conjugate,A.antisymmetry],[B.conjugate,B.antisymmetry])
+                    if A.conjugate<B.conjugate
+                        result_ = true;
+                    elseif (A.antisymmetry < B.antisymmetry) && A.conjugate==B.conjugate
+                        result_ = true;
+                    else
+                        result_ = false;
+                    end
+                else
+                    result_ = string(char(reshape(A.R,1,[])))<string(char(reshape(B.R,1,[])));
+                end
+            end
+        end
+
+        function result = gt(obj,g)
+            result = ~(eq(obj,g) + lt(obj,g));
+        end
+
         function result = disp(obj)
             strpg = TB_Hamilton.groups.pretty_print_pge(obj);
-
-            sympref('AbbreviateOutput',false);
-            sympref('MatrixWithSquareBrackets',true);
-            result = symmatrix(char(strpg));
-            disp(result);
+            % sympref('AbbreviateOutput',false);
+            % sympref('MatrixWithSquareBrackets',true);
+            result = strpg;
+            disp(strpg);
+        end
+        function result = apply(obj,model,k)
+            arguments
+                obj     TB_Hamilton.groups.PointGroupElement
+                model   ;
+                k       = [];
+            end  
+            if ~isempty(k)
+                if obj.conjugate
+                    result = subs(model,k, -k * inv(obj.R));
+                else
+                    result = subs(model,k, k * inv(obj.R));
+                end
+            end
+            if obj.conjugate
+                result = conj(result);
+            end
+            if obj.antisymmetry
+                result = -result;
+            end
+            if ~isempty(obj.U)
+                result = obj.U * result * obj.U';
+            end
         end
 
         function g0 = inv(obj)
@@ -95,6 +151,5 @@ classdef PointGroupElement
             end
             g0 = TB_Hamilton.groups.PointGroupElement(R0,"conjugate",false,"antisymmetry",false,"U",U0);
         end
-
     end
 end
