@@ -23,6 +23,7 @@ classdef PointGroupElement
                 options.U (:,:)  = [];
             end
             [obj.R,obj.conjugate,obj.antisymmetry,obj.U] = deal(real(R),options.conjugate,options.antisymmetry,options.U);
+            obj.R(abs(obj.R)<1e-3)=0;
         end
         function g = mtimes(obj,g2)
             % MTIMES redefines the times
@@ -33,7 +34,7 @@ classdef PointGroupElement
             g1 = obj;
             [R1,c1,a1,U1] = deal(g1.R,g1.conjugate,g1.antisymmetry,g1.U);
             [R2,c2,a2,U2] = deal(g2.R,g2.conjugate,g2.antisymmetry,g2.U);
-            if isempty(U1) | isempty(U2)
+            if isempty(U1) || isempty(U2)
                 g_U = [];
             elseif c1
                 g_U = U1 * conj(U2);
@@ -43,6 +44,7 @@ classdef PointGroupElement
             g_R = R1 * R2;
             g = TB_Hamilton.groups.PointGroupElement(g_R,conjugate = bitxor(c1,c2),antisymmetry = bitxor(a1,a2),U=g_U);
         end
+
         function g = mpower(obj,num)
             % MPOWER redefine the power
             arguments
@@ -67,10 +69,23 @@ classdef PointGroupElement
             end
             eq_g = arrayfun(@(x) eq_(x,g),obj);
             function eq_AB = eq_(A,B)
-                R_eq = norm(A.R-B.R)<1e-3;
+                
+                R_eq = abs(max(A.R-B.R,[],'all',"ComparisonMethod","abs"))<1e-4;
                 basic_eq = R_eq && (A.antisymmetry==B.antisymmetry) && (A.conjugate==B.conjugate);
-                U_eq = norm(A.U-B.U)<1e-3;
-                eq_AB = U_eq && basic_eq;
+                if isempty(A.U)&&isempty(B.U)
+                    U_eq = 1;
+                elseif bitxor(isempty(A.U),isempty(B.U))
+                    U_eq = 0;
+                else
+                    C = A.inv*B;
+                    U1 = C.U;
+                    if abs(U1(1,1))<1e-4
+                        U_eq = 0;
+                    else
+                        U_eq = abs(max(U1/U1(1,1)-eye(size(U1)),[],'all',"ComparisonMethod","abs"))<1e-4;
+                    end
+                end
+                eq_AB = all([U_eq, basic_eq]);
             end
         end
         function result = lt(obj,g)
@@ -90,17 +105,19 @@ classdef PointGroupElement
             end
         end
 
-        function result = gt(obj,g)
-            result = ~(eq(obj,g) + lt(obj,g));
+
+
+        function GT = disp(obj)
+            arguments
+                obj TB_Hamilton.groups.PointGroupElement;
+            end
+            strpg = arrayfun(@(x) TB_Hamilton.groups.pretty_print_pge(x,false),obj,'UniformOutput',false);
+            strpg = [strpg{:}]';
+            GT = table;
+            GT.R = strpg(:,1);
+            GT.U = strpg(:,2);
         end
 
-        function result = disp(obj)
-            strpg = TB_Hamilton.groups.pretty_print_pge(obj);
-            % sympref('AbbreviateOutput',false);
-            % sympref('MatrixWithSquareBrackets',true);
-            result = strpg;
-            disp(strpg);
-        end
         function result = apply(obj,model,k)
             arguments
                 obj     TB_Hamilton.groups.PointGroupElement
@@ -109,9 +126,9 @@ classdef PointGroupElement
             end  
             if ~isempty(k)
                 if obj.conjugate
-                    result = subs(model,k, -k * inv(obj.R));
+                    result = subs(model,k, -k * obj.R);
                 else
-                    result = subs(model,k, k * inv(obj.R));
+                    result = subs(model,k, k * obj.R);
                 end
             end
             if obj.conjugate

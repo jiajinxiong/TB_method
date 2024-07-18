@@ -4,27 +4,30 @@ function [n,theta] = rotation_to_angle(R)
 arguments
     R   (:,:)  {mustBeReal};
 end
-% trace( L(i)*L(j) ) ~ delta_{ij}
-% trace( L(i)*L(j)*L(k) ) ~ epsilon_{ijk}
-% orther = 0
-theta = acos( (trace(R)-1)/2);
-if theta==0
-    n = [];
-else
-    n = zeros(1,3); L = TB_Hamilton.groups.L_matrices(3);
+    n = zeros(1,3); 
+    L = TB_Hamilton.groups.L_matrices(3);
     for j1 = 1:3
         n(j1) = real(1j * trace(L(:,:,j1) * R));
     end
     absn = norm(n) * sign(sum(n));
 
-    if abs(absn)<1e-7
+    if abs(absn)<1e-5
         % n is zero for 2-fold rotation
         [V,E] = eig(R);
-        num = find(abs(diag(E)-1)<1e-6);
-        n = (V(:,num)*sign(sum(V(:,num))))';
+        num = find(abs(diag(E)-1)<1e-6,1);
+        % if 
+        n = V(:,num);
+        n(abs(n)<1e-5) = 0;
+        n = n * sign(sum(n)+1e-4);
+        if abs(sum(n))<1e-4
+            n = n * sign(n(find(n,1)));
+        end
     else
         n = n/absn;
     end
     theta = atan2(absn, (trace(R)-1));
+    if abs(abs(theta)-pi)<1e-4
+       theta = abs(theta); 
+    end
 end
-end
+% end

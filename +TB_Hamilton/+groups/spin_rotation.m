@@ -19,7 +19,7 @@ arguments
     s    double;
 end
 
-if length(s) == 1
+if isscalar(s)
     s = TB_Hamilton.groups.spin_matrices(s);
 end
 

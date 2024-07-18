@@ -1,9 +1,10 @@
-function name = pretty_print_pge(g)
+function name = pretty_print_pge(g,Full)
 % PRETTY_PRINT_PGE returns a human readable string representation of
 % PointGroupElement
 
 arguments
     g  TB_Hamilton.groups.PointGroupElement;
+    Full logical = true;
 end
 R = g.R;
 
@@ -41,51 +42,78 @@ else
         end
     else
         [n,theta] = TB_Hamilton.groups.rotation_to_angle(-R);
-        axis_name = name_axis(n);
-        if abs(theta-pi)<1e-4
+
+        if abs(abs(theta)-pi)<1e-4
+            axis_name = name_axis(n);
             rot_name = "M"+"("+  axis_name +")";
+        elseif abs(theta)<1e-4
+            rot_name = "I";
         else
-            rot_name = "I*R"+"("+name_angle(theta)+ "," + axis_name +")";
+            axis_name = name_axis(n);
+            rot_name = "S"+"("+name_angle(theta)+ "," + axis_name +")";
         end
     end
-    
-end
-name = rot_name;
 end
 
+if g.conjugate && (~g.antisymmetry)
+    ax_name = "T";
+elseif g.conjugate && g.antisymmetry
+    ax_name = "P";
+elseif ~g.conjugate && g.antisymmetry
+    ax_name = "C";
+else
+    ax_name = "";
+end
+if rot_name == "1" && ax_name ~= ""
+    name = ax_name;
+else
+    name = ax_name + rot_name;
+end
 
+if ~isempty(g.U)
+    name = {num2str(name) ; ['U=',mat2str(round(real(g.U),2) + round(imag(g.U),2)*1i)]};
+end
+
+end
+
+%%%%%%%%% simplify angle
 function angle = name_angle(theta)
 [num,den] = rat(theta/pi);
+if max(den)>100
+    [num,den] = rat(round(theta/pi,2));
+end
 if abs(num) == 1 && den~=1
     angle = char(string(num)+"pi"+"/"+string(den));
-
     angle(find(angle=='1',1,"first")) = '';
-elseif den == 1 && num~=1
-    angle = string(num)+"*pi";
 elseif den==1 && num==1
     angle = "pi";
+elseif den==1 && num==-1
+    angle = "-pi";
 else
     angle = string(num)+"*pi"+"/"+string(den);
 end
 end
 
+%%%%%%%%%%%%%%%%%%%%
 function axis_name = name_axis(axis)
+axis(abs(axis)<1e-4)=0;
 axis1 = axis/abs(min(axis(axis~=0)));
-if max(abs(axis1-round(axis1)))<1e-6
+if max(abs(axis1-round(axis1)))<1e-6 && max(abs(axis1))<5
     axis = axis1;
-end
-
-[num,den] = rat(round(axis,2));
-axis_name = "[";
-for j1 = 1:length(axis)
-    if num(j1) == 0
-        axis_name = axis_name + "0" + ",";
-    elseif den(j1) == 1
-        axis_name = axis_name + string(num(j1)) + ",";
-    else
-        axis_name = axis_name + string(num(j1)) + "/" + string(den(j1))+",";
+    [num,den] = rat(axis,2);
+    axis_name = "[";
+    for j1 = 1:length(axis)
+        if num(j1) == 0
+            axis_name = axis_name + "0" + " ";
+        elseif den(j1) == 1
+            axis_name = axis_name + string(num(j1)) + " ";
+        else
+            axis_name = axis_name + string(num(j1)) + "/" + string(den(j1))+" ";
+        end
     end
+    axis_name = strip(axis_name,'right',' ') +"]";
+else
+    axis = round(axis,2);
+    axis_name = string(mat2str(axis));
 end
-
-axis_name = strip(axis_name,'right',',') +"]";
 end
