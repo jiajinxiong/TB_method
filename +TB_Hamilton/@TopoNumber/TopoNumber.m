@@ -194,7 +194,7 @@ classdef TopoNumber
                 kx      (1,:) double;
                 ky      (1,:) double;
                 BandorEnergy (1,:) double;
-                methods (1,:) char {mustBeMember(methods,{'Band','Energy'})} = 'Band';
+                methods (1,:) char {mustBeMember(methods,{'Band','Energy'})} = 'Energy';
             end
             dim = syst.system_graph.numnodes;
             nx = length(kx); ny = length(ky);

@@ -23,10 +23,10 @@ classdef PointGroupElement
                 options.U (:,:)  = [];
             end
             [obj.R,obj.conjugate,obj.antisymmetry,obj.U] = deal(real(R),options.conjugate,options.antisymmetry,options.U);
-            obj.R(abs(obj.R)<1e-3)=0;
+            obj.R(abs(obj.R)<1e-4)=0;
         end
         function g = mtimes(obj,g2)
-            % MTIMES redefines the times
+            % % MTIMES redefines the times
             arguments
                 obj TB_Hamilton.groups.PointGroupElement
                 g2 TB_Hamilton.groups.PointGroupElement
@@ -43,6 +43,8 @@ classdef PointGroupElement
             end
             g_R = R1 * R2;
             g = TB_Hamilton.groups.PointGroupElement(g_R,conjugate = bitxor(c1,c2),antisymmetry = bitxor(a1,a2),U=g_U);
+            % import TB_Hamilton.groups.mul_;
+            % g = mul_(obj,g2);
         end
 
         function g = mpower(obj,num)
@@ -88,26 +90,27 @@ classdef PointGroupElement
                 eq_AB = all([U_eq, basic_eq]);
             end
         end
-        function result = lt(obj,g)
-            result = arrayfun(@(x) lt_(x,g),obj);
-            function result_ = lt_(A,B)
-                if ~isequal([A.conjugate,A.antisymmetry],[B.conjugate,B.antisymmetry])
-                    if A.conjugate<B.conjugate
-                        result_ = true;
-                    elseif (A.antisymmetry < B.antisymmetry) && A.conjugate==B.conjugate
-                        result_ = true;
-                    else
-                        result_ = false;
-                    end
-                else
-                    result_ = string(char(reshape(A.R,1,[])))<string(char(reshape(B.R,1,[])));
-                end
+
+        function result = keyhash(obj)
+
+            
+            result = arrayfun(@(x) keyHash({round(x.R,2),x.conjugate,x.antisymmetry,determine_phase(x.U)}),obj);
+            function y = determine_phase(x)
+                x(abs(x)<1e-3) = 0;
+                id = find(x,1);
+                y = x * exp(-1i*angle(x(id)/abs(x(id))));
+                y = round(real(y),2) + round(imag(y),2)*1i;
             end
+        end
+        function result = keyHash(obj)
+            result = keyHash(sort(obj.keyhash));
+        end
+        function result = keyMatch(obj,A)
+            result = all(obj.keyhash==A.keyhash);
         end
 
 
-
-        function GT = disp(obj)
+        function  GT = disp(obj)
             arguments
                 obj TB_Hamilton.groups.PointGroupElement;
             end
@@ -115,7 +118,12 @@ classdef PointGroupElement
             strpg = [strpg{:}]';
             GT = table;
             GT.R = strpg(:,1);
-            GT.U = strpg(:,2);
+            if size(strpg,2)==2
+                GT.U = strpg(:,2);
+            end
+            disp(num2str(length(obj))+" Group Elements");
+            disp('-------------------');
+            disp(GT.R);
         end
 
         function result = apply(obj,model,k)

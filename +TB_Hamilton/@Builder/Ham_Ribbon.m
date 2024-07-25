@@ -4,8 +4,8 @@ function H = Ham_Ribbon(obj,Ham_,hopping_cell,ind1,Mk)
         Ham_            (:,:)   double;
         hopping_cell            double;
         ind1            (:,:)   double;
-        Mk.kx           (1,1)   double;
-        Mk.ky                   double = [];
+        Mk.kx           (1,1)   ;
+        Mk.ky                    = [];
     end
     ind0 = obj.cell_ind;
     H = Ham_(ind0,ind0);
