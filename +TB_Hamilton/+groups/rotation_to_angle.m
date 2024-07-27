@@ -2,7 +2,7 @@ function [n,theta] = rotation_to_angle(R)
 % ROTATION_TO_ANGLE converts 3D rotation matrix to axis and angle.
 
 arguments
-    R   (:,:)  {mustBeReal};
+    R   (3,3)  {mustBeReal};
 end
     n = zeros(1,3); 
     L = TB_Hamilton.groups.L_matrices(3);

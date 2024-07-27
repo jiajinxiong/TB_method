@@ -71,7 +71,7 @@ classdef PointGroupElement
             end
             eq_g = arrayfun(@(x) eq_(x,g),obj);
             function eq_AB = eq_(A,B)
-                
+
                 R_eq = abs(max(A.R-B.R,[],'all',"ComparisonMethod","abs"))<1e-4;
                 basic_eq = R_eq && (A.antisymmetry==B.antisymmetry) && (A.conjugate==B.conjugate);
                 if isempty(A.U)&&isempty(B.U)
@@ -116,29 +116,37 @@ classdef PointGroupElement
                 obj TB_Hamilton.groups.PointGroupElement;
             end
             strpg = obj.Tag;
-            % GT = table;
-            % GT.R = strpg(:,1);
-            % if size(strpg,2)==2
-            %     GT.U = strpg(:,2);
-            % end
-            disp(num2str(length(obj))+" Group Elements");
+            
+            if size(strpg,2)==2
+                name = strings(size(strpg, 1), 1);
+                maxWidth1 = max(strlength(strpg(:,1)));
+                maxWidth2 = max(strlength(strpg(:,2)));
+                formatStr = sprintf('%%-%ds %%-%ds', maxWidth1 + 5, maxWidth2);
+                for i = 1:size(strpg, 1)
+                    name(i) = sprintf(formatStr, strpg(i,1), strpg(i,2));
+                end
+            else
+                name = strpg;
+            end
+
+            disp(num2str(length(strpg)) + " Group Elements");
             disp('-------------------');
-            disp(strpg(:,1));
+            disp(name);
         end
-        
+
         function strpg = Tag(obj)
             arguments
                 obj TB_Hamilton.groups.PointGroupElement;
             end
             strpg = arrayfun(@(x) TB_Hamilton.groups.pretty_print_pge(x),obj,'UniformOutput',false);
-            strpg = [strpg{:}]';
+            strpg = string([strpg{:}]');
         end
         function result = apply(obj,model,k)
             arguments
                 obj     TB_Hamilton.groups.PointGroupElement
                 model   ;
                 k       = [];
-            end  
+            end
             if ~isempty(k)
                 if obj.conjugate
                     result = subs(model,k, -k * obj.R);

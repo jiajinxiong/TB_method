@@ -1,5 +1,6 @@
-function GCT = Character_Table(G)
+function GCT = Character_Table(G,display)
 % CHARACTER_TABLE - Construct the character table of a group.
+% 1D-A,B; 2D-E; 3D-T,F; 4D-G;
 %
 % Input:
 % ------
@@ -9,13 +10,14 @@ function GCT = Character_Table(G)
 % GCT - a table with the character table of the group.
 arguments
     G (1,:)  TB_Hamilton.groups.PointGroupElement;
+    display (1,1) logical = true;
 end
 
 
 GEC = TB_Hamilton.groups.equivalence_class(G);
-EqC = GEC.keys; numEqC = GEC.values;
+EqC = GEC.keys; numEqClasses = GEC.values;
 M = M_matrices(EqC);
-nE = length(numEqC);
+nE = length(numEqClasses);
 
 while true
     M1 = reshape(tensorprod(rand(1,nE),M,2,1),nE,nE)';
@@ -26,7 +28,10 @@ while true
         break;
     end
 end
-f = @(x) fun(x,W1,numEqC);
+
+
+
+f = @(x) fun(x,W1,numEqClasses);
 options = optimoptions('fsolve','Algorithm','levenberg-marquardt','Display','none');
 
 X = fsolve(f,rand(nE,2),options);
@@ -37,29 +42,48 @@ T1 = diag(exp(-1i*angle(T(:,1))))*T;
 id = find(all(abs(real(T1)-1)<1e-5,2));
 
 T1 = round(real(T1),4)+1i*round(imag(T1),4);
-T2 = [T1(id,:);sortrows(T1([1:id-1,id+1:end],:),1)];
-Head = cellfun(@(x) x(1),EqC);
-if ~isempty(Head(1).U)
-    % F = arrayfun(@(x) round(x.U(1,1)),Head);
-    % Str_head = string(Head.Tag);
-    % 
-    % Str_head = Str_head(:,1);
-    % Str_head(abs(F-1)>1e-4) = "d" + Str_head(abs(F-1)>1e-4);
-    GCT = array2table([numEqC(:)';T2]);
-else
-    Str_head = string(Head.Tag);
-    GCT = array2table([numEqC(:)';T2],VariableNames=cellstr(Str_head));
-end
+T2 = [T1(id,:);sortrows(T1([1:id-1,id+1:end],:))];
+Head = cellfun(@(x) x(1),EqC);   % A representation of the equivalence class.
 
+
+head_name = equiv_class_name(Head);
+GCT = array2table([numEqClasses(:)';T2],VariableNames=cellstr(head_name));
 GCT.Properties.DimensionNames = {'Irr_Rep','Equiv_Class'};
-GCT.Properties.RowNames=["Mul","A"+(1:nE)];
+
+GCT.Properties.RowNames=Irr_name(numEqClasses);
+
+if display
+    fig = uifigure("Position",[500 500 760 360]);
+    uitTable = uitable(fig, ...
+        "Data",GCT, ...
+        "Position",[20 20 720 320]);
+    % % Center all cells of the table & bolden the first row
+    uisCenter = uistyle('HorizontalAlignment', 'center');
+    % uisBold = uistyle('FontWeight','bold');
+    addStyle(uitTable, uisCenter)
 end
 
 
+end
+
+function y = fun(x,T,numEqC)
+T1 = diag(x(:,1))*T*diag(x(:,2));
+numEqC = diag(numEqC);
+y = [T1*numEqC*T1'-sum(diag(numEqC))*eye(size(numEqC,1));T1'*T1-sum(diag(numEqC))*inv(numEqC)]; %#ok<MINV>
+end
 
 function M = M_matrices(Eq_classes)
 % M_MATRICES - Construct the M matrices for the character table.
 % ref: Eq. (7.1) in "Handbook of Computational Group Theory" by Derek F. Holt, Bettina Eick, Eamonn A. O'Brien.
+%
+% Input:
+% ------
+% Eq_classes - a cell array of equivalence classes.
+%
+% Output:
+% -------
+% M - a 3D array with the M matrices.
+
 nEqC = length(Eq_classes);
 M = zeros(nEqC,nEqC,nEqC);
 Key_Eq = cellfun(@(x) x.keyhash,Eq_classes,'UniformOutput',false);
@@ -75,10 +99,32 @@ for j1 = 1:nEqC
 end
 end
 
-function y = fun(x,T,numEqC)
-T1 = diag(x(:,1))*T*diag(x(:,2));
+function Str_head = equiv_class_name(Head)
+arguments
+    Head (1,:) TB_Hamilton.groups.PointGroupElement
+end
+Str_head = string(Head.Tag);
+Str_head = Str_head(:,1);
+unique_str = unique(Str_head);
+if length(Str_head)/length(unique_str)==2
+    for j1 = 1:length(unique_str)
+        nid = find(Str_head==unique_str(j1));
+        Str_head(nid) = ["","d"]'  + Str_head(nid);
+    end
+else
+    for j1 = 1:length(unique_str)
+        nid = find(Str_head==unique_str(j1));
+        Str_head(nid) = ["","d_"+string(1:length(nid)-1)]'+" "+ Str_head(nid);
+    end
+end
 
+end
 
-numEqC = diag(numEqC);
-y = [T1*numEqC*T1'-sum(diag(numEqC))*eye(size(numEqC,1));T1'*T1-sum(diag(numEqC))*inv(numEqC)];
+function name = Irr_name(Irr_D)
+Irr_D = [0,Irr_D'];
+name = strings(1,length(Irr_D));
+name(1) = "Mult.";
+name(Irr_D==1) = "A"+(1:nnz(Irr_D==1)); name(Irr_D==2) = "E_"+(1:nnz(Irr_D==2));
+name(Irr_D==3) = "F_"+(1:nnz(Irr_D==3)); name(Irr_D==4) = "G_"+(1:nnz(Irr_D==4));
+name(Irr_D==5) = "H_"+(1:nnz(Irr_D==5)); name(Irr_D>5) = "I_"+(1:nnz(Irr_D>5));
 end
