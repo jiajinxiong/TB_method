@@ -1,36 +1,26 @@
-function [ECs,dECS] = equivalence_class(group)
+function GEC = equivalence_class(group)
 arguments
     group TB_Hamilton.groups.PointGroupElement;
 end
-ECs = dictionary;
+ECs = dictionary({group(1).identity},1);
 G0 = group;
 GK = group.keyhash; G = group;
-while true
-    if isempty(G)
-        break;
-    end
+while ~isempty(G)
+
     EC = arrayfun(@(x) x.inv*G(1)*x,G0);
     ECK = EC.keyhash;
     [ECK,id] = unique(ECK); EC = EC(id);
     [~,id,~] = intersect(GK,ECK);
     G(id) = []; GK(id) = [];
-    if ~ECs.isConfigured
-        ECs = insert(ECs,{EC},1);
-    else
-        if ~isKey(ECs,{EC})
-            ECs = insert(ECs,{EC},1);
-        end
+    if ~isKey(ECs,{EC})
+        ECs = insert(ECs,{EC},length(EC));
     end
 end
 
 A = ECs.keys;
-Iden_id = find(cellfun(@(x) any(ismember(x,group(1).identity)),A));
-A = {A{Iden_id},A{1:Iden_id-1},A{Iden_id+1:end}};
-[nECS_,Id] = sort(cellfun(@(x) length(x),A));
 
-ECs = A(Id);
-if nargout==2
-dECS = nECS_;
-end
+[nECS_,Id] = sort(values(ECs));
+
+GEC = dictionary(A(Id),nECS_);
 
 end

@@ -1,10 +1,9 @@
-function name = pretty_print_pge(g,Full)
+function name = pretty_print_pge(g)
 % PRETTY_PRINT_PGE returns a human readable string representation of
 % PointGroupElement
 
 arguments
     g  TB_Hamilton.groups.PointGroupElement;
-    Full logical = true;
 end
 R = g.R;
 
@@ -50,7 +49,7 @@ else
             rot_name = "I";
         else
             axis_name = name_axis(n);
-            rot_name = "S"+"("+name_angle(theta)+ "," + axis_name +")";
+            rot_name = "S"+"("+name_angle(theta*2)+ "," + axis_name +")";
         end
     end
 end

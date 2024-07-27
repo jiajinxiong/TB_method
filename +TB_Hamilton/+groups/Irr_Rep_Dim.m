@@ -2,9 +2,9 @@ function Rep_D = Irr_Rep_Dim(G)
 arguments
     G TB_Hamilton.groups.PointGroupElement;
 end
-nG = length(G); [~,dECs] = TB_Hamilton.groups.equivalence_class(G);
+nG = length(G); GEC = TB_Hamilton.groups.equivalence_class(G);
 % nEC = length(EC);
-Rep_D = sort(decomposeToNSquares(nG,length(dECs)));
+Rep_D = sort(decomposeToNSquares(nG,length(GEC.values)));
 end
 
 

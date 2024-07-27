@@ -84,7 +84,8 @@ classdef PointGroupElement
                     if abs(U1(1,1))<1e-4
                         U_eq = 0;
                     else
-                        U_eq = abs(max(U1/U1(1,1)-eye(size(U1)),[],'all',"ComparisonMethod","abs"))<1e-4;
+                        % U_eq = abs(max(U1/U1(1,1)-eye(size(U1)),[],'all',"ComparisonMethod","abs"))<1e-4;
+                        U_eq = abs(max(U1-eye(size(U1)),[],'all',"ComparisonMethod","abs"))<1e-4;
                     end
                 end
                 eq_AB = all([U_eq, basic_eq]);
@@ -93,8 +94,8 @@ classdef PointGroupElement
 
         function result = keyhash(obj)
 
-            
-            result = arrayfun(@(x) keyHash({round(x.R,2),x.conjugate,x.antisymmetry,determine_phase(x.U)}),obj);
+            result = arrayfun(@(x) keyHash({round(x.R,2),x.conjugate,x.antisymmetry,round(x.U,2)}),obj);
+            % result = arrayfun(@(x) keyHash({round(x.R,2),x.conjugate,x.antisymmetry,determine_phase(x.U)}),obj);
             function y = determine_phase(x)
                 x(abs(x)<1e-3) = 0;
                 id = find(x,1);
@@ -110,22 +111,28 @@ classdef PointGroupElement
         end
 
 
-        function  GT = disp(obj)
+        function disp(obj)
             arguments
                 obj TB_Hamilton.groups.PointGroupElement;
             end
-            strpg = arrayfun(@(x) TB_Hamilton.groups.pretty_print_pge(x,false),obj,'UniformOutput',false);
-            strpg = [strpg{:}]';
-            GT = table;
-            GT.R = strpg(:,1);
-            if size(strpg,2)==2
-                GT.U = strpg(:,2);
-            end
+            strpg = obj.Tag;
+            % GT = table;
+            % GT.R = strpg(:,1);
+            % if size(strpg,2)==2
+            %     GT.U = strpg(:,2);
+            % end
             disp(num2str(length(obj))+" Group Elements");
             disp('-------------------');
-            disp(GT.R);
+            disp(strpg(:,1));
         end
-
+        
+        function strpg = Tag(obj)
+            arguments
+                obj TB_Hamilton.groups.PointGroupElement;
+            end
+            strpg = arrayfun(@(x) TB_Hamilton.groups.pretty_print_pge(x),obj,'UniformOutput',false);
+            strpg = [strpg{:}]';
+        end
         function result = apply(obj,model,k)
             arguments
                 obj     TB_Hamilton.groups.PointGroupElement
