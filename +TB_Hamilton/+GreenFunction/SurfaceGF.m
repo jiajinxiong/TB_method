@@ -39,7 +39,7 @@ classdef SurfaceGF < handle
             end
             if isempty(k)
                 H0 = obj.Ham(obj.H0_ind,obj.H0_ind);  V1 = obj.Ham(obj.H0_ind,obj.V1_ind);
-            elseif length(k)==1
+            elseif isscalar(k)
                 Ham_k = obj.Ham(k);
                 H0 = Ham_k(obj.H0_ind,obj.H0_ind);  V1 = Ham_k(obj.H0_ind,obj.V1_ind);
             end

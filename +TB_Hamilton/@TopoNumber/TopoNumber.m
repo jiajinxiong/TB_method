@@ -80,8 +80,8 @@ classdef TopoNumber
 
         function [Z_xspin2,Z_yspin1,Es] = Zeeman_curvature(syst,kx,ky,spin1,spin2,BandorEnergy,methods)
             % ZEEMAN_CURVATURE is used to calculate the zeeman berry curvature
-            % Z_{x spin2}^n = 2Re sum_m (ir^x_{nm} spin2_{mn}).
-            % 
+            % Z_{x spin2}^n = sum_m (r^x_{nm} spin2_{mn}).
+            % Z_{y spin1}^n = sum_m (r^y_{nm} spin1_{mn}).
             % Parameters
             % ------
             % syst : TB_Hamilton.Builder.
@@ -101,7 +101,7 @@ classdef TopoNumber
             %   defined as Z_{y spin1} = 2Re sum (ir^y_{nm} spin1_{mn})
             %   where `spin1` is the input paramater
             arguments
-                syst    TB_Hamilton.Builder;
+                syst    function_handle ;
                 kx      (1,:) double;
                 ky      (1,:) double;
                 spin1   double;
@@ -112,18 +112,19 @@ classdef TopoNumber
             nx = length(kx); ny = length(ky);
             dx = kx(2) - kx(1);
             dy = ky(2) - ky(1);
-            dim = syst.system_graph.numnodes;
+            % dim = syst.system_graph.numnodes;
+            dim = size(syst(kx(1),ky(1)),1);
             if methods == "Band"
                 nB = length(BandorEnergy);
                 Z_xspin2 = zeros(nx,ny,nB);               Z_yspin1 = zeros(nx,ny,nB);
                 EE = zeros(nx,ny,nB);
                 parfor j1 = 1:nx
                     for j2 = 1:ny
-                        H = full(syst.Hamilton(kx(j1),ky(j2)));
+                        H = full(syst(kx(j1),ky(j2)));
                         [V,E] = eig(H); E = diag(E);
 
-                        H_dx = full(syst.Hamilton(kx(j1)+dx,ky(j2)));
-                        H_dy = full(syst.Hamilton(kx(j1),ky(j2)+dy));
+                        H_dx = full(syst(kx(j1)+dx,ky(j2)));
+                        H_dy = full(syst(kx(j1),ky(j2)+dy));
                         vx = (H_dx-H)/dx;  vy = (H_dy-H)/dy;
                         for ind = 1:nB
                             nband = BandorEnergy(ind);
@@ -133,7 +134,7 @@ classdef TopoNumber
                                 Z_xy_ = Z_xy_ + (V(:,nband)'*vx*V(:,i1) * V(:,i1)'*spin2*V(:,nband) )* (dx*dy)/Delta;
                                 Z_yx_ =Z_yx_ + (V(:,nband)'*vy*V(:,i1)*V(:,i1)' * spin1 * V(:,nband))* (dx*dy)/Delta;
                             end
-                            Z_xspin2(j1,j2,ind) = Z_xy_ + Z_xy_'; Z_yspin1(j1,j2,ind) = Z_yx_ + Z_yx_';
+                            Z_xspin2(j1,j2,ind) = -1i*Z_xy_; Z_yspin1(j1,j2,ind) = -1i*Z_yx_;
                             EE(j1,j2,ind) = E(nband);
                         end
                     end
@@ -142,10 +143,10 @@ classdef TopoNumber
                 Z_xspin2 = zeros(nx,ny);               Z_yspin1 = zeros(nx,ny);
                 parfor j1 = 1:nx
                     for j2 = 1:ny
-                        H = full(syst.Hamilton(kx(j1),ky(j2)));
+                        H = full(syst(kx(j1),ky(j2)));
                         [V,E] = eig(H); E = diag(E);
-                        H_dx = full(syst.Hamilton(kx(j1)+dx,ky(j2)));
-                        H_dy = full(syst.Hamilton(kx(j1),ky(j2)+dy));
+                        H_dx = full(syst(kx(j1)+dx,ky(j2)));
+                        H_dy = full(syst(kx(j1),ky(j2)+dy));
                         vx = (H_dx-H)/dx;  vy = (H_dy-H)/dy;
                         nE = length(find(E<=BandorEnergy));
                         Z_xy_ = 0; Z_yx_ = 0;
@@ -157,7 +158,7 @@ classdef TopoNumber
                                 Z_xy_ = Z_xy_ + (V(:,nband)'*vx*V(:,i1) * V(:,i1)'*spin2*V(:,nband) )* (dx*dy)/Delta;
                                 Z_yx_ =Z_yx_ + (V(:,nband)'*vy*V(:,i1)*V(:,i1)' * spin1 * V(:,nband))* (dx*dy)/Delta;
                             end
-                            Z_xspin2(j1,j2) = Z_xy_ + Z_xy_'; Z_yspin1(j1,j2) = Z_yx_ + Z_yx_';
+                            Z_xspin2(j1,j2) = -1i*Z_xy_ ; Z_yspin1(j1,j2) = -1i*Z_yx_;
                         end
                     end
                 end
@@ -189,14 +190,14 @@ classdef TopoNumber
             % Es : bulk band energy (optional)
             %   when return value number equal 2
             arguments
-                syst    TB_Hamilton.Builder;
+                syst    function_handle;
                 Spin    (:,:) double
                 kx      (1,:) double;
                 ky      (1,:) double;
                 BandorEnergy (1,:) double;
                 methods (1,:) char {mustBeMember(methods,{'Band','Energy'})} = 'Energy';
             end
-            dim = syst.system_graph.numnodes;
+            dim = size(syst(kx(1),ky(1)),1);
             nx = length(kx); ny = length(ky);
             dy = ky(2)-ky(1);  dx = kx(2) - kx(1);
             assert(length(Spin)==dim,'The dimension of Spin must equal Hamiltonian');
@@ -207,8 +208,8 @@ classdef TopoNumber
                 EE = zeros(nx,ny,nB);
                 parfor j1 = 1:nx
                     for j2 = 1:ny
-                        H = syst.Hamilton(kx(j1),ky(j2));  [V,E] = eig(full(H)); E = diag(E);
-                        H_dx = syst.Hamilton(kx(j1)+dx,ky(j2)); H_dy = syst.Hamilton(kx(j1),ky(j2)+dy);
+                        H = syst(kx(j1),ky(j2));  [V,E] = eig(full(H)); E = diag(E);
+                        H_dx = syst(kx(j1)+dx,ky(j2)); H_dy = syst(kx(j1),ky(j2)+dy);
                         vy = (H_dy-H)/dy;  vx = (H_dx-H)/dx;
                         for i1 = 1:nB
                             Omega_ = 0;
@@ -226,8 +227,8 @@ classdef TopoNumber
                 Omega_spin = zeros(nx,ny);
                 parfor j1 = 1:nx
                     for j2 = 1:ny
-                        H = syst.Hamilton(kx(j1),ky(j2));  [V,E] = eig(full(H)); E = diag(E);
-                        H_dx = syst.Hamilton(kx(j1)+dx,ky(j2)); H_dy = syst.Hamilton(kx(j1),ky(j2)+dy);
+                        H = syst(kx(j1),ky(j2));  [V,E] = eig(full(H)); E = diag(E); %#ok<PFBNS>
+                        H_dx = syst(kx(j1)+dx,ky(j2)); H_dy = syst(kx(j1),ky(j2)+dy);
                         vy = (H_dy-H)/dy;  vx = (H_dx-H)/dx;
                         nE = length(find(E<=BandorEnergy));
                         Omega_ = 0;

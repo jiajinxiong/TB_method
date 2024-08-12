@@ -26,7 +26,7 @@ classdef PointGroupElement
             obj.R(abs(obj.R)<1e-4)=0;
         end
         function g = mtimes(obj,g2)
-            % % MTIMES redefines the times
+            % MTIMES overload the * operator to the PointGroupElement
             arguments
                 obj TB_Hamilton.groups.PointGroupElement
                 g2 TB_Hamilton.groups.PointGroupElement
@@ -48,7 +48,7 @@ classdef PointGroupElement
         end
 
         function g = mpower(obj,num)
-            % MPOWER redefine the power
+            % MPOWER overload the ^ operator to the PointGroupElement
             arguments
                 obj TB_Hamilton.groups.PointGroupElement
                 num double;
@@ -92,16 +92,17 @@ classdef PointGroupElement
             end
         end
 
+
         function result = keyhash(obj)
 
             result = arrayfun(@(x) keyHash({round(x.R,2),x.conjugate,x.antisymmetry,round(x.U,2)}),obj);
             % result = arrayfun(@(x) keyHash({round(x.R,2),x.conjugate,x.antisymmetry,determine_phase(x.U)}),obj);
-            function y = determine_phase(x)
-                x(abs(x)<1e-3) = 0;
-                id = find(x,1);
-                y = x * exp(-1i*angle(x(id)/abs(x(id))));
-                y = round(real(y),2) + round(imag(y),2)*1i;
-            end
+            % function y = determine_phase(x)
+            %     x(abs(x)<1e-3) = 0;
+            %     id = find(x,1);
+            %     y = x * exp(-1i*angle(x(id)/abs(x(id))));
+            %     y = round(real(y),2) + round(imag(y),2)*1i;
+            % end
         end
         function result = keyHash(obj)
             result = keyHash(sort(obj.keyhash));
@@ -109,7 +110,15 @@ classdef PointGroupElement
         function result = keyMatch(obj,A)
             result = all(obj.keyhash==A.keyhash);
         end
-
+        function result = sort(obj)
+            GT = TB_Hamilton.groups.grouptable(obj);
+            if width(GT)==2
+                [~,id] = sortrows(GT,[1,2],{'ascend' 'descend'});
+            else
+                [~,id] = sortrows(GT);
+            end
+            result = obj(id);
+        end
 
         function disp(obj)
             arguments
@@ -129,7 +138,7 @@ classdef PointGroupElement
                 name = strpg;
             end
 
-            disp(num2str(length(strpg)) + " Group Elements");
+            disp(num2str(length(obj)) + " Group Elements");
             disp('-------------------');
             disp(name);
         end
@@ -141,17 +150,28 @@ classdef PointGroupElement
             strpg = arrayfun(@(x) TB_Hamilton.groups.pretty_print_pge(x),obj,'UniformOutput',false);
             strpg = string([strpg{:}]');
         end
-        function result = apply(obj,model,k)
+
+        function result = apply(obj,model,options)
             arguments
                 obj     TB_Hamilton.groups.PointGroupElement
                 model   ;
-                k       = [];
+                options.method  (1,1) {mustBeMember(options.method,["basis_fun","Hamilton"])} = "Hamilton";
+                options.sym_var    = [];
             end
+            k = options.sym_var;
             if ~isempty(k)
-                if obj.conjugate
-                    result = subs(model,k, -k * obj.R);
+                if ~iscell(k)
+                    sym_var = k;
+                    g_sym_var = k * obj.R;
                 else
-                    result = subs(model,k, k * obj.R);
+                    sym_var = [k{:}];
+                    g_sym_var = cellfun(@(x) x * obj.R ,k,'UniformOutput',false);
+                    g_sym_var = [g_sym_var{:}];
+                end
+                if obj.conjugate
+                    result = subs(model,sym_var, -g_sym_var);
+                else
+                    result = subs(model,sym_var, g_sym_var);
                 end
             end
             if obj.conjugate
@@ -160,13 +180,15 @@ classdef PointGroupElement
             if obj.antisymmetry
                 result = -result;
             end
-            if ~isempty(obj.U)
+            if ~isempty(obj.U) && options.method == "Hamilton"
                 result = obj.U * result * obj.U';
+            elseif ~isempty(obj.U) && options.method == "basis_fun"
+                result = obj.U' * result;
             end
         end
 
         function g0 = inv(obj)
-            % INV refine the PointGroupElement
+            % INV overload the inv operator to the PointGroupElement
             g1 = obj;
             [R1,c1,a1,U1] = deal(g1.R,g1.conjugate,g1.antisymmetry,g1.U);
             if isempty(U1)

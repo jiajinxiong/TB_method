@@ -48,8 +48,9 @@ else
         elseif abs(theta)<1e-4
             rot_name = "I";
         else
+            % The S only represents the rotoinversion S(theta,n) = R(theta,n)*I
             axis_name = name_axis(n);
-            rot_name = "S"+"("+name_angle(theta*2)+ "," + axis_name +")";
+            rot_name = "S"+"("+name_angle(theta/2)+ "," + axis_name +")";
         end
     end
 end

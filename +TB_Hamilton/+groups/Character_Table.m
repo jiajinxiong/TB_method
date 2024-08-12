@@ -9,7 +9,7 @@ function GCT = Character_Table(G,display)
 % -------
 % GCT - a table with the character table of the group.
 arguments
-    G (1,:)  TB_Hamilton.groups.PointGroupElement;
+    G TB_Hamilton.groups.PointGroupElement;
     display (1,1) logical = true;
 end
 
@@ -34,8 +34,11 @@ end
 f = @(x) fun(x,W1,numEqClasses);
 options = optimoptions('fsolve','Algorithm','levenberg-marquardt','Display','none');
 
-X = fsolve(f,rand(nE,2),options);
-T = diag(X(:,1))*W1*diag(X(:,2));
+% X = fsolve(f,rand(nE,2),options);
+% T = diag(X(:,1))*W1*diag(X(:,2));
+
+X = fsolve(f,rand(nE,1),options);
+T = diag(X)*W1*inv(diag(numEqClasses));
 
 
 T1 = diag(exp(-1i*angle(T(:,1))))*T;
@@ -50,7 +53,7 @@ head_name = equiv_class_name(Head);
 GCT = array2table([numEqClasses(:)';T2],VariableNames=cellstr(head_name));
 GCT.Properties.DimensionNames = {'Irr_Rep','Equiv_Class'};
 
-GCT.Properties.RowNames=Irr_name(numEqClasses);
+GCT.Properties.RowNames=Irr_name(T2(:,1));
 
 if display
     fig = uifigure("Position",[500 500 760 360]);
@@ -58,7 +61,7 @@ if display
         "Data",GCT, ...
         "Position",[20 20 720 320]);
     % % Center all cells of the table & bolden the first row
-    uisCenter = uistyle('HorizontalAlignment', 'center');
+    uisCenter = uistyle('HorizontalAlignment', 'center','FontName','Arial');
     % uisBold = uistyle('FontWeight','bold');
     addStyle(uitTable, uisCenter)
 end
@@ -67,9 +70,10 @@ end
 end
 
 function y = fun(x,T,numEqC)
-T1 = diag(x(:,1))*T*diag(x(:,2));
-numEqC = diag(numEqC);
-y = [T1*numEqC*T1'-sum(diag(numEqC))*eye(size(numEqC,1));T1'*T1-sum(diag(numEqC))*inv(numEqC)]; %#ok<MINV>
+% T1 = diag(x(:,1))*T*diag(x(:,2));
+T1 = diag(x)*T*inv(diag(numEqC));
+numEqC1 = diag(numEqC);
+y = [T1*numEqC1*T1'-sum(diag(numEqC1))*eye(size(numEqC1,1));T1'*T1-sum(diag(numEqC1))*inv(numEqC1)]; %#ok<MINV>
 end
 
 function M = M_matrices(Eq_classes)
@@ -124,7 +128,7 @@ function name = Irr_name(Irr_D)
 Irr_D = [0,Irr_D'];
 name = strings(1,length(Irr_D));
 name(1) = "Mult.";
-name(Irr_D==1) = "A"+(1:nnz(Irr_D==1)); name(Irr_D==2) = "E_"+(1:nnz(Irr_D==2));
-name(Irr_D==3) = "F_"+(1:nnz(Irr_D==3)); name(Irr_D==4) = "G_"+(1:nnz(Irr_D==4));
-name(Irr_D==5) = "H_"+(1:nnz(Irr_D==5)); name(Irr_D>5) = "I_"+(1:nnz(Irr_D>5));
+name(Irr_D==1) = "A"+(1:nnz(Irr_D==1)); name(Irr_D==2) = "E"+(1:nnz(Irr_D==2));
+name(Irr_D==3) = "F"+(1:nnz(Irr_D==3)); name(Irr_D==4) = "G"+(1:nnz(Irr_D==4));
+name(Irr_D==5) = "H"+(1:nnz(Irr_D==5)); name(Irr_D>5) =  "I"+(1:nnz(Irr_D>5));
 end

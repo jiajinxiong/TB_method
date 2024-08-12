@@ -23,19 +23,19 @@ function g = rotation(angle,axis,options)
 %   z axis is assumed to be rotation axis. 
 
 arguments
-    angle               (1,1) ;
-    axis                (1,:) double = [];
+    angle                       (1,1) ;
+    axis                        (1,:) double = [];
     options.inversion           (1,1) logical = false;
-    options.U           (:,:) double =[];
-    options.spin        double = [];
+    options.U                   (:,:) double =[];
+    options.spin                double = [];
 end
 spin = options.spin; U = options.U; inversion = options.inversion;
-assert(isempty(U)|isempty(spin),'Only one of `U` and `spin` may be provided');
+assert(isempty(U) | isempty(spin),'Only one of `U` and `spin` may be provided');
 
 if isempty(axis)
     R = TB_Hamilton.groups.spin_rotation(angle,TB_Hamilton.groups.L_matrices(2));
     if ~isempty(spin)
-        U = TB_Hamilton.groups.spin_rotation(angle * [0,0,1],spin);
+        U = TB_Hamilton.groups.spin_rotation(angle * [0,0,1],spin,inversion);
     end
     if inversion
         R = -R;
@@ -48,7 +48,7 @@ elseif length(axis) == 3
         R = -R;
     end
     if ~isempty(spin)
-        U = TB_Hamilton.groups.spin_rotation(n,spin);
+        U = TB_Hamilton.groups.spin_rotation(n,spin,inversion);
     end
 else
     error('`axia` needs to be `empty` or a 3D vector.');

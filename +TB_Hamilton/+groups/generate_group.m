@@ -29,6 +29,5 @@ function group = generate_group(gens)
     % group = [group{:}];
 
     % Sort the group elements by their keyhash
-    [~, id] = sort(group.keyhash);
-    group = group(id);
+    group = sort(group);
 end

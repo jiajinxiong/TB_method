@@ -6,14 +6,13 @@ ECs = dictionary({group(1).identity},1);
 G0 = group;
 GK = group.keyhash; G = group;
 while ~isempty(G)
-
     EC = arrayfun(@(x) x.inv*G(1)*x,G0);
     ECK = EC.keyhash;
     [ECK,id] = unique(ECK); EC = EC(id);
     [~,id,~] = intersect(GK,ECK);
     G(id) = []; GK(id) = [];
     if ~isKey(ECs,{EC})
-        ECs = insert(ECs,{EC},length(EC));
+        ECs = insert(ECs,{sort(EC)},length(EC));
     end
 end
 
