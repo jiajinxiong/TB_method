@@ -94,7 +94,6 @@ classdef PointGroupElement
 
 
         function result = keyhash(obj)
-
             result = arrayfun(@(x) keyHash({round(x.R,2),x.conjugate,x.antisymmetry,round(x.U,2)}),obj);
             % result = arrayfun(@(x) keyHash({round(x.R,2),x.conjugate,x.antisymmetry,determine_phase(x.U)}),obj);
             % function y = determine_phase(x)

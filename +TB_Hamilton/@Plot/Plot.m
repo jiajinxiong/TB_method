@@ -3,7 +3,7 @@ classdef Plot
         Density();
         FBZ(syst);
         ScatterRegion();
-        ScatterRegion3();
+        T = ScatterRegion3();
         Scatter;
         Quiver();
         LineQuiver();

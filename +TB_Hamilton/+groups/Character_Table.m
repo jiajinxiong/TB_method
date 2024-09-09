@@ -73,7 +73,7 @@ function y = fun(x,T,numEqC)
 % T1 = diag(x(:,1))*T*diag(x(:,2));
 T1 = diag(x)*T*inv(diag(numEqC));
 numEqC1 = diag(numEqC);
-y = [T1*numEqC1*T1'-sum(diag(numEqC1))*eye(size(numEqC1,1));T1'*T1-sum(diag(numEqC1))*inv(numEqC1)]; %#ok<MINV>
+y = [T1*numEqC1*T1'-sum(numEqC)*eye(size(numEqC1,1));T1'*T1-sum(numEqC)*inv(numEqC1)];
 end
 
 function M = M_matrices(Eq_classes)

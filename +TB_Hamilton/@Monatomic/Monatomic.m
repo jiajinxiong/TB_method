@@ -48,6 +48,9 @@ classdef Monatomic %< TB_Hamilton.Polyatomic
                 end
                 input = [x(:) y(:)];
             else
+                if length(x)~=length(y)||length(x)~=length(z)
+                    [x,y,z] = meshgrid(x,y,z);
+                end
                 input = [x(:) y(:) z(:)];
             end
                 
