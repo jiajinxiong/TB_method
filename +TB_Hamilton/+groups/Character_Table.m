@@ -101,7 +101,7 @@ for j1 = 1:nEqC
         M(j2,j1,:) = Id;
     end
 end
-end
+end 
 
 function Str_head = equiv_class_name(Head)
 arguments

@@ -7,15 +7,16 @@ arguments
 end
 propertyCell = namedargs2cell(propArgs);
 pos_ = unique(pos,"rows");
-Id = [];
+% Id = [];
+rho1 = zeros(size(pos_,1),1);
 if length(pos_) ~= length(pos)
     for j1 = 1:size(pos_,1)
         id = ismember(pos,pos_(j1,:),"rows");
-        Id = [Id,find(id)];
+        rho1(j1) = sum(rho(id));
+        % Id = [Id,find(id)];
     end
-    rho = reshape(sum(rho(Id)),[],1);
-else
-    pos_ = pos;
+    rho = rho1;
+    % pos = pos_;
 end
 bubblechart(pos_(:,1),pos_(:,2),rho,propertyCell{:});
 bubblesize(options2.limsize);

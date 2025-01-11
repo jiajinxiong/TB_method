@@ -17,9 +17,9 @@ methods
             FG      ;
         end
         if iscell(FG)
-            iseq = cellfun(@(x) isisomorphic(obj.G,x.G),FG);
+            iseq = cellfun(@(x) isisomorphic(obj.G,x.G,"NodeVariables",'in_out'),FG);
         else
-            iseq = isisomorphic(obj.G,FG.G);
+            iseq = isisomorphic(obj.G,FG.G,"NodeVariables",'in_out');
         end
     
     end

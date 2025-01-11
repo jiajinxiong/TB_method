@@ -6,18 +6,18 @@ function isGSke = find_G_skeletonic(G)
     nid = length(id);
     for j1 = 1:nid
         G1 = rmedge(G,id(j1));
-        if isscalar(unique(conncomp(G1,'Type','weak')))
-            for j2 = j1:nid
+        isGSke1 = isscalar(unique(conncomp(G1,'Type','weak')));
+        if isGSke1
+            for j2 = j1+1:nid
                 G2 = rmedge(G,[id(j1),id(j2)]);
-                if ~isscalar(unique(conncomp(G2,'Type','weak')))
-                    isGSke = 0;
+                isGSke = isscalar(unique(conncomp(G2,'Type','weak')));
+                if ~isGSke
                     return
                 end
             end
         else
-            isGSke = 0;
+            isGSke = isGSke1;
             return
         end
     end
-    isGSke = 1;
 end

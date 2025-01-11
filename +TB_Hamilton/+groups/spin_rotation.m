@@ -30,8 +30,8 @@ end
 
 U = expm(-1i*tensorprod(s,n,3,2));
 
-if inversion && mod(spin,1)==0
-    U = expm(1i*pi*spin) * U;
+if inversion && round(spin)-spin==0
+    U = expm(-1i*pi*spin) * U;
 end
 
 end

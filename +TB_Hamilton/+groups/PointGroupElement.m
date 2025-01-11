@@ -182,7 +182,7 @@ classdef PointGroupElement
             if ~isempty(obj.U) && options.method == "Hamilton"
                 result = obj.U * result * obj.U';
             elseif ~isempty(obj.U) && options.method == "basis_fun"
-                result = obj.U' * result;
+                result = obj.U * result;
             end
         end
 

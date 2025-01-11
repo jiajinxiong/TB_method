@@ -4,7 +4,7 @@ function result = uneq_EE_FG(in_point,out_point,options)
         out_point (1,:) string = [];
         options.isconnection (1,1) logical = false;
         options.isloop (1,1) logical = true;
-        options.isSkeleton (1,1) {mustBeMember(options.isSkeleton,["G","W",""])} = "";
+        options.isSkeleton (1,1) {mustBeMember(options.isSkeleton,["G","W","","GW"])} = "";
     end
     option = namedargs2cell(options);
 
